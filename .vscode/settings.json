@@ -1,0 +1,5 @@
+{
+    "python.defaultInterpreterPath": "/Users/lanphuong/Library/Caches/pypoetry/virtualenvs/ui-exp-gxsXHrec-py3.12",
+    "python.formatter": "black",
+    "editor.formatOnSave": true
+}

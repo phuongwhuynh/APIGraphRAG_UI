@@ -1,0 +1,96 @@
+{# Render a schema summary. Expects `schema` and `spec` in scope. #}
+<div class="schema-card bg-gray-50 border rounded p-3 text-sm">
+  {% if schema is none %}
+    <div class="text-gray-500">No schema</div>
+  {% else %}
+    {% set ref_name = get_ref_name(schema) %}
+    {% if ref_name %}
+      {% set resolved = resolve_ref(spec, schema['$ref']) %}
+    {% endif %}
+
+    <details class="group" open>
+      <summary class="flex items-center justify-between cursor-pointer list-none">
+        <div class="flex items-center space-x-3">
+          <svg class="w-4 h-4 text-gray-500 transform group-open:rotate-90 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          <div class="text-sm text-gray-700">Schema</div>
+          {% if ref_name %}
+            <span class="text-xs text-gray-400">(ref)</span>
+          {% endif %}
+        </div>
+        <div class="text-gray-400 text-xs">
+          {% if ref_name %}
+            {% set s_trace = get_trace(resolved) %}
+          {% else %}
+            {% set s_trace = get_trace(schema) %}
+          {% endif %}
+          {% if s_trace %}
+            {% set trace = s_trace %}
+            {% include 'components/trace.html' %}
+            {% set trace = None %}
+          {% endif %}
+        </div>
+      </summary>
+
+      <div class="mt-2">
+        {# Three cases: ref -> show referenced component props; array -> recurse into items; non-ref object -> show props #}
+        {% if ref_name %}
+          {% set props = get_schema_properties(resolved) %}
+        {% elif schema.type == 'array' or is_array(schema) %}
+          {% set items = get_array_items(schema) %}
+          {% set schema = items %}
+          {% include 'components/schema.html' %}
+          {% set schema = None %}
+          {# done with array case #}
+        {% else %}
+          {% set props = get_schema_properties(schema) %}
+        {% endif %}
+
+        {% if props %}
+          <div class="mt-2 grid gap-1">
+            {% for pname, pdef in props.items() %}
+              <div>
+                <div class="flex items-start justify-between">
+                  <div class="text-gray-700">{{ pname }}</div>
+                  <div class="text-gray-500">
+                    {% if pdef.get('$ref') %}
+                      <span class="font-mono text-xs">{{ get_ref_name(pdef) }}</span>
+                    {% else %}
+                      {{ pdef.get('type', '') }}
+                    {% endif %}
+                  </div>
+                </div>
+
+                {% if pdef.get('$ref') %}
+                  {% set nested = resolve_ref(spec, pdef['$ref']) %}
+                  {% set nested_props = get_schema_properties(nested) %}
+                  {% if nested_props %}
+                    <div class="mt-1 ml-4 text-sm text-gray-700">
+                      {% for npn, npd in nested_props.items() %}
+                        <div class="flex justify-between">
+                          <div>{{ npn }}</div>
+                          <div class="text-gray-500">{{ npd.get('type','') }}</div>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+
+                {% elif pdef.get('type') == 'array' or is_array(pdef) %}
+                  {% set items = get_array_items(pdef) %}
+                  <div class="mt-1 ml-4 text-sm text-gray-700">
+                    <div>items:
+                      {% if items.get('$ref') %}
+                        <span class="font-mono text-xs">{{ get_ref_name(items) }}</span>
+                      {% else %}
+                        <span class="text-gray-500">{{ items.get('type','object') }}</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </details>
+  {% endif %}
+</div>

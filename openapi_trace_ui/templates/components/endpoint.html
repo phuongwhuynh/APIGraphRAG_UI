@@ -1,0 +1,77 @@
+<div class="endpoint bg-white border border-gray-100 rounded-md p-4 shadow-sm">
+  <div class="flex items-start justify-between">
+    <div class="flex items-center space-x-3">
+      {% set method = ep.method.upper() %}
+      {% if method == 'GET' %}
+        <span class="text-xs font-semibold px-2 py-1 rounded bg-green-100 text-green-800">{{ method }}</span>
+      {% elif method == 'POST' %}
+        <span class="text-xs font-semibold px-2 py-1 rounded bg-blue-100 text-blue-800">{{ method }}</span>
+      {% else %}
+        <span class="text-xs font-semibold px-2 py-1 rounded bg-gray-100 text-gray-800">{{ method }}</span>
+      {% endif %}
+      <div>
+        <div class="text-lg font-medium text-gray-900">{{ ep.path }}</div>
+        <div class="text-sm text-gray-500">{{ ep.data.summary }}</div>
+      </div>
+    </div>
+    <div class="text-sm text-gray-400">{% set trace = get_trace(ep.data) %}{% if trace %}{% include "components/trace.html" %}{% endif %}</div>
+  </div>
+
+  {% if ep.data.description %}
+    <p class="mt-3 text-sm text-gray-700">{{ ep.data.description }}</p>
+  {% endif %}
+
+  {% set params = get_parameters(ep) %}
+  {% if params %}
+    <div class="mt-4">
+      <h4 class="text-sm font-semibold text-gray-700">Parameters</h4>
+      <ul class="mt-2 grid gap-2">
+      {% for p in params %}
+        {% set p_trace = get_trace(p) %}
+        <li class="flex items-start space-x-3">
+          <div class="w-32 text-xs text-gray-600">{{ p.name }} <span class="text-xs text-gray-400">({{ p.in }})</span></div>
+          <div class="flex-1 text-sm text-gray-700">{{ p.description }}</div>
+          <div class="ml-4">
+            {% if p_trace %}
+            <span class="param-trace text-indigo-600 hover:underline cursor-pointer text-sm"
+                  data-file="{{ p_trace.file }}"
+                  {% if p_trace.line_start %} data-line-start="{{ p_trace.line_start }}" data-line-end="{{ p_trace.line_end }}" {% elif p_trace.line %} data-line="{{ p_trace.line }}" {% endif %}>
+              view
+            </span>
+            {% endif %}
+          </div>
+        </li>
+      {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% set req_body = get_request_body(ep) %}
+  {% if req_body %}
+    <div class="mt-4 border-t pt-3">
+      <h4 class="text-sm font-semibold text-gray-700">Request Body</h4>
+      <div class="mt-2">
+        {% set req_schema = get_request_schema(req_body) %}
+        {% if req_schema %}
+          {% set schema = req_schema %}
+          {% include 'components/schema.html' %}
+          {% set schema = None %}
+        {% else %}
+          <div class="text-sm text-gray-500">No request schema</div>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+  {% set responses = get_responses(ep) %}
+  {% if responses %}
+    <div class="mt-4 border-t pt-3">
+      <h4 class="text-sm font-semibold text-gray-700">Responses</h4>
+      <div class="mt-2 space-y-2">
+      {% for code, res in responses.items() %}
+        {% include "components/response.html" %}
+      {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+</div>

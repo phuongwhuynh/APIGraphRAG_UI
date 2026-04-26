@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAPI Trace UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* small helper for code window */
+      .trace-panel pre { white-space: pre; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace; }
+      .line-number { color: #94a3b8; padding-right: 1rem; }
+      .line.highlight { background-color: rgba(99,102,241,0.12); border-left: 3px solid rgba(99,102,241,0.8); }
+    </style>
+  </head>
+  <body class="bg-gray-50 text-gray-900">
+  <div class="max-w-6xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-4">API Explorer</h1>
+
+    <div id="endpoints" class="space-y-6">
+    {% for tag, eps in group_endpoints_by_tag(spec).items() %}
+      <section class="bg-white rounded-lg p-4 shadow-sm">
+        <h2 class="text-xl font-semibold">{{ tag }}</h2>
+        <div class="mt-3 space-y-4">
+        {% for ep in eps %}
+          {% include "components/endpoint.html" %}
+        {% endfor %}
+        </div>
+      </section>
+    {% endfor %}
+    </div>
+  </div>
+
+  <!-- Trace preview panel (appears near hovered item) -->
+  <div id="trace-panel" class="trace-panel bg-white shadow-lg rounded-lg overflow-hidden hidden z-50" style="position:absolute; display:none; width:420px; max-height:70vh;">
+    <div class="px-4 py-2 border-b bg-gray-100 flex items-center justify-between">
+      <div id="trace-title" class="text-sm font-medium"></div>
+      <button id="trace-close" class="text-gray-600 hover:text-gray-900">✕</button>
+    </div>
+    <div id="trace-content" class="p-4 overflow-auto" style="max-height:58vh;"></div>
+  </div>
+
+  <script>
+  (function(){
+    const cache = new Map();
+    const panel = document.getElementById('trace-panel');
+    const panelContent = document.getElementById('trace-content');
+    const panelTitle = document.getElementById('trace-title');
+    const closeBtn = document.getElementById('trace-close');
+
+    function showPanel(){ panel.style.display = 'block'; panel.classList.remove('hidden'); }
+    function hidePanel(){ panel.style.display = 'none'; panel.classList.add('hidden'); }
+    closeBtn.addEventListener('click', hidePanel);
+
+    async function loadTrace(file){
+      if(cache.has(file)) return cache.get(file);
+      const res = await fetch('/_trace?path=' + encodeURIComponent(file));
+      if(!res.ok) throw new Error('fetch failed');
+      const data = await res.json();
+      cache.set(file, data.content);
+      return data.content;
+    }
+
+    function renderTrace(content, opts){
+      const lines = content.split('\n');
+      const start = opts.line_start || opts.line || 1;
+      const end = opts.line_end || opts.line || start;
+      const wrapper = document.createElement('div');
+      wrapper.className = 'text-sm text-gray-800';
+
+      // inner container ensures we can measure full content width (no wrapping)
+      const inner = document.createElement('div');
+      inner.style.minWidth = 'max-content';
+      inner.style.display = 'block';
+
+      const pre = document.createElement('div');
+      pre.style.lineHeight = '1.25';
+      pre.className = 'leading-5';
+
+      for(let i=0;i<lines.length;i++){
+        const num = i+1;
+        const row = document.createElement('div');
+        // make row a block so highlight covers full width of inner
+        row.style.display = 'flex';
+        row.style.whiteSpace = 'pre';
+        const numSpan = document.createElement('span');
+        numSpan.className = 'line-number text-right pr-4 select-none';
+        numSpan.style.flex = '0 0 56px';
+        numSpan.textContent = num;
+        const codeSpan = document.createElement('span');
+        codeSpan.className = 'flex-1';
+        codeSpan.textContent = lines[i];
+        row.appendChild(numSpan);
+        row.appendChild(codeSpan);
+        if(num >= start && num <= end){
+          row.classList.add('line','highlight');
+        } else {
+          row.classList.add('line');
+        }
+        pre.appendChild(row);
+      }
+
+      inner.appendChild(pre);
+      wrapper.appendChild(inner);
+      return wrapper;
+    }
+
+    function centerHighlight(container){
+      const highlight = container.querySelector('.highlight');
+      if(!highlight) return;
+      const containerRect = panelContent.getBoundingClientRect();
+      const highlightTop = highlight.offsetTop;
+      const highlightHeight = highlight.offsetHeight;
+      panelContent.scrollTop = highlightTop - panelContent.clientHeight/2 + highlightHeight/2;
+    }
+
+    let hoverTimeout = null;
+    document.addEventListener('pointerenter', async (e) => {
+      const el = e.target.closest && e.target.closest('.param-trace');
+      if(!el) return;
+      const file = el.dataset.file;
+      if(!file) return;
+      // read line attrs
+      const line = el.dataset.line ? parseInt(el.dataset.line,10) : null;
+      const lineStart = el.dataset.lineStart ? parseInt(el.dataset.lineStart,10) : null;
+      const lineEnd = el.dataset.lineEnd ? parseInt(el.dataset.lineEnd,10) : null;
+      try{
+        const content = await loadTrace(file);
+        panelTitle.textContent = file + (lineStart? ` (${lineStart}-${lineEnd})` : (line? ` (line ${line})` : ''));
+        panelContent.innerHTML = '';
+        const node = renderTrace(content, {line: line, line_start: lineStart, line_end: lineEnd});
+        panelContent.appendChild(node);
+        showPanel();
+
+        // position panel next to element
+        const rect = el.getBoundingClientRect();
+        // ensure panel is in document flow to compute size
+        document.body.appendChild(panel);
+        // small timeout to allow rendering
+        requestAnimationFrame(()=>{
+          const panelRect = panel.getBoundingClientRect();
+          const margin = 8;
+          let left = window.scrollX + rect.right + margin;
+          let top = window.scrollY + rect.top;
+            // if overflow right, position to left of element
+            if(left + panelRect.width > window.scrollX + window.innerWidth){
+              left = window.scrollX + rect.left - panelRect.width - margin;
+            }
+          // clamp top to viewport
+          if(top + panelRect.height > window.scrollY + window.innerHeight){
+            top = window.scrollY + window.innerHeight - panelRect.height - margin;
+          }
+          if(top < window.scrollY + margin) top = window.scrollY + margin;
+            // compute desired width based on rendered content so panel expands if possible
+            const contentInner = panelContent.firstElementChild;
+            if(contentInner){
+              // measure inner width
+              const contentWidth = contentInner.scrollWidth + 32; // add padding
+              const maxAllowed = Math.min(window.innerWidth - margin*2, 1200);
+              const targetWidth = Math.min(contentWidth, maxAllowed);
+              panel.style.width = targetWidth + 'px';
+              // re-read panel rect after width change
+              const newRect = panel.getBoundingClientRect();
+              // reposition if we now overflow
+              if(left + newRect.width > window.scrollX + window.innerWidth){
+                left = window.scrollX + rect.left - newRect.width - margin;
+              }
+              if(left < window.scrollX + margin) left = window.scrollX + margin;
+              panel.style.left = left + 'px';
+              panel.style.top = top + 'px';
+              // horizontal scroll if content wider than panel
+              if(contentWidth > targetWidth){
+                panelContent.style.overflowX = 'auto';
+              } else {
+                panelContent.style.overflowX = 'hidden';
+              }
+            } else {
+              panel.style.left = left + 'px';
+              panel.style.top = top + 'px';
+            }
+            centerHighlight(panelContent);
+        });
+      }catch(err){
+        panelContent.textContent = 'Unable to load file';
+        showPanel();
+      }
+    }, true);
+
+    document.addEventListener('pointerleave', (e)=>{
+      const el = e.target.closest && e.target.closest('.param-trace');
+      if(!el) return;
+      // hide after short delay to allow moving into panel
+      clearTimeout(hoverTimeout);
+      hoverTimeout = setTimeout(()=>{ if(!panel.matches(':hover')) hidePanel(); }, 250);
+    }, true);
+
+    // keep panel visible if user moves pointer into it
+    panel.addEventListener('pointerleave', ()=>{ if(!hoverTimeout) hoverTimeout = setTimeout(hidePanel, 300); });
+    panel.addEventListener('pointerenter', ()=>{ clearTimeout(hoverTimeout); hoverTimeout = null; });
+  })();
+  </script>
+
+  </body>
+  </html>

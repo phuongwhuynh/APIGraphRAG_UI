@@ -1,0 +1,25 @@
+<div class="response bg-gray-50 rounded-md p-3 border">
+  <div class="flex items-start justify-between">
+    <div class="flex items-center space-x-3">
+      {% set code_int = code %}
+      {% set is_error = code.startswith('4') or code.startswith('5') %}
+      {% if is_error %}
+        <span class="text-xs font-semibold px-2 py-1 rounded bg-red-100 text-red-800">{{ code }}</span>
+      {% else %}
+        <span class="text-xs font-semibold px-2 py-1 rounded bg-green-100 text-green-800">{{ code }}</span>
+      {% endif %}
+      <div class="text-sm text-gray-700">{{ res.description }}</div>
+    </div>
+    <div class="text-sm text-gray-400">{% set trace = get_trace(res) %}{% if trace %}{% include "components/trace.html" %}{% endif %}</div>
+  </div>
+</div>
+
+{# Render response schema (if any) #}
+{% set resp_schema = get_schema_from_response(res) %}
+{% if resp_schema %}
+  <div class="mt-2">
+    {% set schema = resp_schema %}
+    {% include 'components/schema.html' %}
+    {% set schema = None %}
+  </div>
+{% endif %}

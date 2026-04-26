@@ -1,0 +1,333 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "E-Commerce API (Trace-Enriched)",
+    "version": "1.0.0",
+    "description": "LLM-generated API specification with semantic descriptions and deep traceability across endpoints, schemas, and error flows."
+  },
+
+  "paths": {
+    "/users/{user_id}": {
+      "get": {
+        "tags": ["users"],
+        "summary": "Retrieve user by ID",
+        "description": "Fetch a user by unique identifier. Requires authentication. Returns full profile if found.",
+        "operationId": "getUserById",
+
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "description": "Unique user identifier. Must be a positive integer.",
+            "schema": { "type": "integer" },
+            "x-trace": {
+              "file": "app/api/users.py",
+              "line": 14
+            }
+          }
+        ],
+
+        "responses": {
+          "200": {
+            "description": "User successfully retrieved.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            },
+            "x-trace": {
+              "file": "app/api/users.py",
+              "line_start": 20,
+              "line_end": 26
+            }
+          },
+
+          "401": {
+            "description": "Unauthorized. Token missing or invalid.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": {
+                  "error": "UNAUTHORIZED",
+                  "message": "Invalid or expired token"
+                }
+              }
+            },
+            "x-trace": {
+              "file": "app/core/security.py",
+              "line_start": 10,
+              "line_end": 35
+            }
+          },
+
+          "404": {
+            "description": "User not found.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": {
+                  "error": "NOT_FOUND",
+                  "message": "User does not exist"
+                }
+              }
+            },
+            "x-trace": {
+              "file": "app/api/users.py",
+              "line": 18
+            }
+          }
+        },
+
+        "security": [{ "BearerAuth": [] }],
+
+        "x-trace": {
+          "file": "app/api/users.py",
+          "line_start": 12,
+          "line_end": 26
+        }
+      }
+    },
+
+    "/users": {
+      "post": {
+        "tags": ["users"],
+        "summary": "Create user",
+        "description": "Create a new user after validating input and ensuring email uniqueness.",
+        "operationId": "createUser",
+
+        "requestBody": {
+          "required": true,
+          "description": "Payload containing user name and email.",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UserCreate" }
+            }
+          },
+          "x-trace": {
+            "file": "app/schemas/user.py",
+            "line_start": 5,
+            "line_end": 15
+          }
+        },
+
+        "responses": {
+          "201": {
+            "description": "User created successfully.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            },
+            "x-trace": {
+              "file": "app/schemas/user.py",
+              "line_start": 17,
+              "line_end": 30
+            }
+          },
+
+          "400": {
+            "description": "Invalid input or duplicate email.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": {
+                  "error": "BAD_REQUEST",
+                  "message": "Email already exists"
+                }
+              }
+            },
+            "x-trace": {
+              "file": "app/services/user_service.py",
+              "line_start": 10,
+              "line_end": 40
+            }
+          },
+
+          "422": {
+            "description": "Validation error from request schema.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ValidationErrorResponse" }
+              }
+            },
+            "x-trace": {
+              "file": "app/api/orders.py",
+              "line_start": 12,
+              "line_end": 15
+            }
+          }
+        },
+
+        "x-trace": {
+          "file": "app/api/users.py",
+          "line_start": 30,
+          "line_end": 55
+        }
+      }
+    },
+
+    "/orders": {
+      "get": {
+        "tags": ["orders"],
+        "summary": "List orders",
+        "description": "Retrieve orders optionally filtered by user and limited in count.",
+        "operationId": "listOrders",
+
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "description": "Filter by user ID.",
+            "schema": { "type": "integer" },
+            "x-trace": {
+              "file": "app/api/orders.py",
+              "line": 12
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max number of results.",
+            "schema": { "type": "integer", "default": 10 },
+            "x-trace": {
+              "file": "app/api/orders.py",
+              "line": 13
+            }
+          }
+        ],
+
+        "responses": {
+          "200": {
+            "description": "List of orders.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Order" }
+                }
+              }
+            },
+            "x-trace": {
+              "file": "app/schemas/order.py",
+              "line_start": 5,
+              "line_end": 25
+            }
+          }
+        },
+
+        "x-trace": {
+          "file": "app/api/orders.py",
+          "line_start": 10,
+          "line_end": 35
+        }
+      }
+    }
+  },
+
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "description": "User entity representing an account in the system.",
+        "required": ["id", "name", "email"],
+        "properties": {
+          "id": { "type": "integer", "description": "User ID." },
+          "name": { "type": "string", "description": "Full name." },
+          "email": { "type": "string", "format": "email" }
+        },
+        "x-trace": {
+          "file": "app/schemas/user.py",
+          "line_start": 17,
+          "line_end": 30
+        }
+      },
+
+      "UserCreate": {
+        "type": "object",
+        "description": "Input schema for creating users.",
+        "required": ["name", "email"],
+        "properties": {
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" }
+        },
+        "x-trace": {
+          "file": "app/schemas/user.py",
+          "line_start": 5,
+          "line_end": 15
+        }
+      },
+
+      "Order": {
+        "type": "object",
+        "description": "Order placed by a user.",
+        "required": ["id", "user_id", "amount"],
+        "properties": {
+          "id": { "type": "integer" },
+          "user_id": { "type": "integer" },
+          "amount": { "type": "number" },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "completed", "cancelled"]
+          }
+        },
+        "x-trace": {
+          "file": "app/schemas/order.py",
+          "line_start": 5,
+          "line_end": 25
+        }
+      },
+
+      "ErrorResponse": {
+        "type": "object",
+        "description": "Standard error structure.",
+        "required": ["error", "message"],
+        "properties": {
+          "error": { "type": "string" },
+          "message": { "type": "string" },
+          "details": { "type": "object" }
+        },
+        "x-trace": {
+          "file": "app/schemas/error.py",
+          "line_start": 1,
+          "line_end": 20
+        }
+      },
+
+      "ValidationErrorResponse": {
+        "type": "object",
+        "description": "Detailed validation error response.",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": { "type": "string" },
+                "message": { "type": "string" }
+              }
+            }
+          }
+        },
+        "x-trace": {
+          "file": "app/schemas/error.py",
+          "line_start": 22,
+          "line_end": 45
+        }
+      }
+    },
+
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "JWT authentication.",
+        "x-trace": {
+          "file": "app/core/security.py",
+          "line_start": 1,
+          "line_end": 8
+        }
+      }
+    }
+  }
+}
