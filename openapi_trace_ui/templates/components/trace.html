@@ -1,11 +1,11 @@
 <div class="trace inline-block">
   <span class="trace-link param-trace inline-flex items-center space-x-2 text-sm text-indigo-600 hover:underline cursor-pointer"
         data-file="{{ trace.file }}"
-        {% if trace.line_start %} data-line-start="{{ trace.line_start }}" data-line-end="{{ trace.line_end }}" {% elif trace.line %} data-line="{{ trace.line }}" {% endif %}>
+        {% if trace.start_line %} data-line-start="{{ trace.start_line }}" data-line-end="{{ trace.end_line }}" {% elif trace.line %} data-line="{{ trace.line }}" {% endif %}>
     <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M16 3v4M8 3v4"/></svg>
     <span class="font-mono text-xs text-gray-700">{{ trace.file }}</span>
-    {% if trace.line_start %}
-      <span class="text-xs text-gray-400">({{ trace.line_start }}-{{ trace.line_end }})</span>
+    {% if trace.start_line %}
+      <span class="text-xs text-gray-400">({{ trace.start_line }}-{{ trace.end_line }})</span>
     {% elif trace.line %}
       <span class="text-xs text-gray-400">(line {{ trace.line }})</span>
     {% endif %}

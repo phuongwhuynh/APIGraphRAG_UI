@@ -35,7 +35,7 @@
             {% if p_trace %}
             <span class="param-trace text-indigo-600 hover:underline cursor-pointer text-sm"
                   data-file="{{ p_trace.file }}"
-                  {% if p_trace.line_start %} data-line-start="{{ p_trace.line_start }}" data-line-end="{{ p_trace.line_end }}" {% elif p_trace.line %} data-line="{{ p_trace.line }}" {% endif %}>
+                  {% if p_trace.start_line %} data-line-start="{{ p_trace.start_line }}" data-line-end="{{ p_trace.end_line }}" {% elif p_trace.line %} data-line="{{ p_trace.line }}" {% endif %}>
               view
             </span>
             {% endif %}

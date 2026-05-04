@@ -91,11 +91,20 @@ def resolve_ref(spec: Dict, ref: str) -> Optional[Dict]:
 
 
 def get_trace(obj: Dict) -> Optional[Dict]:
-    return obj.get("x-trace")
+    trace = obj.get("x-trace")
+    if not trace:
+        return None
+    # Only return trace if it has start_line/end_line or line
+    if ("start_line" in trace and "end_line" in trace) or ("line" in trace):
+        return trace
+    return None
 
 
 def has_trace(obj: Dict) -> bool:
-    return "x-trace" in obj
+    trace = obj.get("x-trace")
+    if not trace:
+        return False
+    return ("start_line" in trace and "end_line" in trace) or ("line" in trace)
 
 
 def format_trace(trace: Dict) -> str:
@@ -104,13 +113,13 @@ def format_trace(trace: Dict) -> str:
 
     file = trace.get("file", "")
     func = trace.get("function", "")
-    line_start = trace.get("line_start")
-    line_end = trace.get("line_end")
+    start_line = trace.get("start_line")
+    end_line = trace.get("end_line")
     line = trace.get("line")
 
-    if line_start and line_end:
-        return f"{file}::{func} ({line_start}-{line_end})"
-    elif line:
+    if start_line is not None and end_line is not None:
+        return f"{file}::{func} ({start_line}-{end_line})"
+    elif line is not None:
         return f"{file}::{func} (line {line})"
     return f"{file}::{func}"
 

@@ -62,8 +62,8 @@
 
     function renderTrace(content, opts){
       const lines = content.split('\n');
-      const start = opts.line_start || opts.line || 1;
-      const end = opts.line_end || opts.line || start;
+      const start = opts.start_line || opts.line || 1;
+      const end = opts.end_line || opts.line || start;
       const wrapper = document.createElement('div');
       wrapper.className = 'text-sm text-gray-800';
 
@@ -127,7 +127,7 @@
         const content = await loadTrace(file);
         panelTitle.textContent = file + (lineStart? ` (${lineStart}-${lineEnd})` : (line? ` (line ${line})` : ''));
         panelContent.innerHTML = '';
-        const node = renderTrace(content, {line: line, line_start: lineStart, line_end: lineEnd});
+        const node = renderTrace(content, {line: line, start_line: lineStart, end_line: lineEnd});
         panelContent.appendChild(node);
         showPanel();
 
