@@ -5,11 +5,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OpenAPI Trace UI</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js/styles/github.css">
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js/highlight.min.js"></script>
     <style>
-      /* small helper for code window */
-      .trace-panel pre { white-space: pre; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace; }
+      /* overall helpers to emulate a Swagger-like crisp style */
+      body { background: #f8fafc; }
+      .swagger-header { background: linear-gradient(90deg,#2563eb,#7c3aed); color: white; border-radius: 8px; }
+      .card { background: white; border: 1px solid #e6edf3; box-shadow: 0 6px 12px rgba(16,24,40,0.04); }
+
+      /* code window */
+      .trace-panel pre { 
+          white-space: pre; 
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace; 
+          overflow-x: auto; 
+          margin: 0;
+      }
       .line-number { color: #94a3b8; padding-right: 1rem; }
-      .line.highlight { background-color: rgba(99,102,241,0.12); border-left: 3px solid rgba(99,102,241,0.8); }
+      .line.highlight { background-color: rgba(99,102,241,0.08); border-left: 3px solid rgba(99,102,241,0.9); }
+
+      /* parameter and schema emphasis */
+      .param-name { font-weight: 600; color: #0f172a; }
+      .param-in { font-size: 11px; color:#3730a3; background:#eef2ff; padding:2px 8px; border-radius:999px; font-weight:600; }
+      .type-pill { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace; background:#eef2ff; color:#3730a3; padding:2px 8px; border-radius:6px; font-size:12px; }
+      .schema-card { background: #ffffff; border: 1px solid #e6edf3; border-radius: 8px; }
+      .schema-field { display:flex; justify-content:space-between; gap: 12px; padding:6px 0; border-bottom: 1px dashed #f1f5f9; }
+      .schema-field-name { font-weight:700; color:#0f172a; }
+      .schema-field-desc { color:#475569; font-size:13px; }
+
+      /* trace link */
+      .trace-link { color:#2563eb; font-weight:600; }
+      .trace-file { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace; color:#0f172a; }
+
+      /* trace panel specifics */
+      .trace-panel { width: 480px; }
+      .trace-panel .hljs {
+          background: transparent !important;
+          padding: 0 !important;
+          display: inline-block; /* Expands to fit the longest line of code */
+          width: max-content;
+          min-width: 100%;       /* Ensures it fills the panel even if code is short */
+      }
+      .trace-panel .line-number { background:#f8fafc; color:#64748b; padding:0 10px; border-right:1px solid #eef2f7; }
+      .trace-panel .line { 
+          display: block;        /* Takes up the full width of the parent */
+          width: 100%;           /* Ensures the line spans the entire width of the panel */
+          box-sizing: border-box;
+          padding: 2px 16px;     /* Added a bit more horizontal padding for aesthetics */
+      }
+      .trace-panel .line:hover { background:#f1f5f9; }
+      .trace-panel .highlight { background: linear-gradient(90deg, rgba(99,102,241,0.06), rgba(99,102,241,0.02)); border-left: 4px solid rgba(99,102,241,0.9); }
+      #trace-copy { background: transparent; border: none; padding:6px 8px; border-radius:6px; }
+      #trace-copy.copied { background:#ecfdf5; color:#065f46; }
     </style>
   </head>
   <body class="bg-gray-50 text-gray-900">
@@ -31,12 +77,21 @@
   </div>
 
   <!-- Trace preview panel (appears near hovered item) -->
-  <div id="trace-panel" class="trace-panel bg-white shadow-lg rounded-lg overflow-hidden hidden z-50" style="position:absolute; display:none; width:420px; max-height:70vh;">
-    <div class="px-4 py-2 border-b bg-gray-100 flex items-center justify-between">
-      <div id="trace-title" class="text-sm font-medium"></div>
-      <button id="trace-close" class="text-gray-600 hover:text-gray-900">✕</button>
+  <div id="trace-panel" class="trace-panel bg-white shadow-lg rounded-lg overflow-hidden hidden z-50" style="position:absolute; display:none; width:420px; max-height:70vh; border:1px solid #e6edf3;">
+    <div class="px-4 py-2 border-b bg-white flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <svg class="w-5 h-5 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h10v10H7z"/></svg>
+        <div>
+          <div id="trace-title" class="text-sm font-medium trace-file"></div>
+          <div id="trace-range" class="text-xs text-gray-500"></div>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button id="trace-copy" class="text-sm text-gray-600 hover:text-gray-900">Copy</button>
+        <button id="trace-close" class="text-gray-600 hover:text-gray-900">✕</button>
+      </div>
     </div>
-    <div id="trace-content" class="p-4 overflow-auto" style="max-height:58vh;"></div>
+    <div id="trace-content" class="py-4 overflow-y-auto overflow-x-hidden" style="max-height:58vh;"></div>
   </div>
 
   <script>
@@ -60,62 +115,76 @@
       return data.content;
     }
 
-    function renderTrace(content, opts){
-      const lines = content.split('\n');
-      const start = opts.start_line || opts.line || 1;
-      const end = opts.end_line || opts.line || start;
-      const wrapper = document.createElement('div');
-      wrapper.className = 'text-sm text-gray-800';
+    // store last loaded trace text for copy
+    let lastTraceText = '';
+function renderTrace(content, opts) {
+  // Ensure content is a string so .split() and .replace() don't crash
+  if (typeof content !== 'string') {
+    content = String(content || ''); 
+  }
 
-      // inner container ensures we can measure full content width (no wrapping)
-      const inner = document.createElement('div');
-      inner.style.minWidth = 'max-content';
-      inner.style.display = 'block';
+  const start = opts.start_line || opts.line || 1;
+  const end = opts.end_line || opts.line || start;
 
-      const pre = document.createElement('div');
-      pre.style.lineHeight = '1.25';
-      pre.className = 'leading-5';
+  const wrapper = document.createElement('div');
+  wrapper.className = 'text-sm text-gray-800';
 
-      for(let i=0;i<lines.length;i++){
-        const num = i+1;
-        const row = document.createElement('div');
-        // make row a block so highlight covers full width of inner
-        row.style.display = 'flex';
-        row.style.whiteSpace = 'pre';
-        const numSpan = document.createElement('span');
-        numSpan.className = 'line-number text-right pr-4 select-none';
-        numSpan.style.flex = '0 0 56px';
-        numSpan.textContent = num;
-        const codeSpan = document.createElement('span');
-        codeSpan.className = 'flex-1';
-        codeSpan.textContent = lines[i];
-        row.appendChild(numSpan);
-        row.appendChild(codeSpan);
-        if(num >= start && num <= end){
-          row.classList.add('line','highlight');
-        } else {
-          row.classList.add('line');
-        }
-        pre.appendChild(row);
+  const pre = document.createElement('pre');
+  pre.style.margin = '0';
+  pre.style.padding = '0';
+  pre.style.background = 'none';
+  pre.style.position = 'relative';
+
+  const code = document.createElement('code');
+  code.className = 'hljs language-python';
+
+  // Safely attempt highlighting
+  let highlightedHTML = '';
+  if (window.hljs) {
+    try {
+      // Try modern Highlight.js API (v10.7+)
+      highlightedHTML = window.hljs.highlight(content, { language: 'python' }).value;
+    } catch (e1) {
+      try {
+        // Fallback to Legacy API (v10 and older)
+        highlightedHTML = window.hljs.highlight('python', content).value;
+      } catch (e2) {
+        console.warn("Highlight.js failed, falling back to raw text:", e2);
+        highlightedHTML = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       }
-
-      inner.appendChild(pre);
-      wrapper.appendChild(inner);
-      return wrapper;
     }
+  } else {
+    highlightedHTML = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
 
-    function centerHighlight(container){
-      const highlight = container.querySelector('.highlight');
-      if(!highlight) return;
-      const containerRect = panelContent.getBoundingClientRect();
-      const highlightTop = highlight.offsetTop;
-      const highlightHeight = highlight.offsetHeight;
-      panelContent.scrollTop = highlightTop - panelContent.clientHeight/2 + highlightHeight/2;
-    }
+  const lines = highlightedHTML.split('\n');
+  let codeHtml = '';
+  
+  for (let i = 0; i < lines.length; i++) {
+    const num = i + 1;
+    let lineClass = 'line';
+    if (num >= start && num <= end) lineClass += ' highlight';
+    codeHtml += `<span class="${lineClass}"><span class="line-number">${num}</span> ${lines[i]}</span>`;
+  }
 
+  code.innerHTML = codeHtml;
+  pre.appendChild(code);
+  wrapper.appendChild(pre);
+
+  return wrapper;
+}
     let hoverTimeout = null;
+
+    function findParamTrace(node){
+      while(node){
+        if(node.nodeType === 1 && node.classList && node.classList.contains('param-trace')) return node;
+        node = node.parentNode;
+      }
+      return null;
+    }
+
     document.addEventListener('pointerenter', async (e) => {
-      const el = e.target.closest && e.target.closest('.param-trace');
+      const el = findParamTrace(e.target);
       if(!el) return;
       const file = el.dataset.file;
       if(!file) return;
@@ -125,8 +194,12 @@
       const lineEnd = el.dataset.lineEnd ? parseInt(el.dataset.lineEnd,10) : null;
       try{
         const content = await loadTrace(file);
+        lastTraceText = content;
         panelTitle.textContent = file + (lineStart? ` (${lineStart}-${lineEnd})` : (line? ` (line ${line})` : ''));
         panelContent.innerHTML = '';
+        // update range display
+        const rangeEl = document.getElementById('trace-range');
+        if(rangeEl){ rangeEl.textContent = lineStart? `${lineStart}-${lineEnd}` : (line? `line ${line}` : ''); }
         const node = renderTrace(content, {line: line, start_line: lineStart, end_line: lineEnd});
         panelContent.appendChild(node);
         showPanel();
@@ -151,9 +224,14 @@
           }
           if(top < window.scrollY + margin) top = window.scrollY + margin;
             // compute desired width based on rendered content so panel expands if possible
+            panel.style.width = 'auto';
             const contentInner = panelContent.firstElementChild;
             if(contentInner){
               // measure inner width
+              const codeElement = contentInner.querySelector('code');
+              const trueScrollWidth = codeElement ? codeElement.scrollWidth : contentInner.scrollWidth;
+
+              
               const contentWidth = contentInner.scrollWidth + 32; // add padding
               const maxAllowed = Math.min(window.innerWidth - margin*2, 1200);
               const targetWidth = Math.min(contentWidth, maxAllowed);
@@ -186,7 +264,7 @@
     }, true);
 
     document.addEventListener('pointerleave', (e)=>{
-      const el = e.target.closest && e.target.closest('.param-trace');
+      const el = findParamTrace(e.target);
       if(!el) return;
       // hide after short delay to allow moving into panel
       clearTimeout(hoverTimeout);
@@ -196,6 +274,21 @@
     // keep panel visible if user moves pointer into it
     panel.addEventListener('pointerleave', ()=>{ if(!hoverTimeout) hoverTimeout = setTimeout(hidePanel, 300); });
     panel.addEventListener('pointerenter', ()=>{ clearTimeout(hoverTimeout); hoverTimeout = null; });
+    // copy button
+    const copyBtn = document.getElementById('trace-copy');
+    if(copyBtn){
+      copyBtn.addEventListener('click', async ()=>{
+        try{
+          await navigator.clipboard.writeText(lastTraceText || panelContent.innerText || '');
+          copyBtn.classList.add('copied');
+          const prev = copyBtn.textContent;
+          copyBtn.textContent = 'Copied';
+          setTimeout(()=>{ copyBtn.classList.remove('copied'); copyBtn.textContent = prev; }, 1200);
+        }catch(e){
+          console.warn('copy failed',e);
+        }
+      });
+    }
   })();
   </script>
 

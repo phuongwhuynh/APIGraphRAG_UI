@@ -5,6 +5,7 @@ from pathlib import Path
 from openapi_trace_ui.renderer import render_app
 import os
 from dotenv import load_dotenv
+import logging
 
 app = FastAPI()
 

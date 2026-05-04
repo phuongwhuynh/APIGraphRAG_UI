@@ -23,7 +23,8 @@
             "schema": { "type": "integer" },
             "x-trace": {
               "file": "app/api/users.py",
-              "line": 14
+              "start_line": 14,
+              "end_line": 14
             }
           }
         ],
@@ -35,11 +36,6 @@
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/User" }
               }
-            },
-            "x-trace": {
-              "file": "app/api/users.py",
-              "line_start": 20,
-              "line_end": 26
             }
           },
 
@@ -53,11 +49,6 @@
                   "message": "Invalid or expired token"
                 }
               }
-            },
-            "x-trace": {
-              "file": "app/core/security.py",
-              "line_start": 10,
-              "line_end": 35
             }
           },
 
@@ -71,10 +62,6 @@
                   "message": "User does not exist"
                 }
               }
-            },
-            "x-trace": {
-              "file": "app/api/users.py",
-              "line": 18
             }
           }
         },
@@ -83,8 +70,8 @@
 
         "x-trace": {
           "file": "app/api/users.py",
-          "line_start": 12,
-          "line_end": 26
+          "start_line": 12,
+          "end_line": 26
         }
       }
     },
@@ -103,11 +90,6 @@
             "application/json": {
               "schema": { "$ref": "#/components/schemas/UserCreate" }
             }
-          },
-          "x-trace": {
-            "file": "app/schemas/user.py",
-            "line_start": 5,
-            "line_end": 15
           }
         },
 
@@ -118,11 +100,6 @@
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/User" }
               }
-            },
-            "x-trace": {
-              "file": "app/schemas/user.py",
-              "line_start": 17,
-              "line_end": 30
             }
           },
 
@@ -136,11 +113,6 @@
                   "message": "Email already exists"
                 }
               }
-            },
-            "x-trace": {
-              "file": "app/services/user_service.py",
-              "line_start": 10,
-              "line_end": 40
             }
           },
 
@@ -150,19 +122,14 @@
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/ValidationErrorResponse" }
               }
-            },
-            "x-trace": {
-              "file": "app/api/orders.py",
-              "line_start": 12,
-              "line_end": 15
             }
           }
         },
 
         "x-trace": {
           "file": "app/api/users.py",
-          "line_start": 30,
-          "line_end": 55
+          "start_line": 30,
+          "end_line": 55
         }
       }
     },
@@ -207,19 +174,14 @@
                   "items": { "$ref": "#/components/schemas/Order" }
                 }
               }
-            },
-            "x-trace": {
-              "file": "app/schemas/order.py",
-              "line_start": 5,
-              "line_end": 25
             }
           }
         },
 
         "x-trace": {
           "file": "app/api/orders.py",
-          "line_start": 10,
-          "line_end": 35
+          "start_line": 10,
+          "end_line": 35
         }
       }
     }
@@ -238,8 +200,8 @@
         },
         "x-trace": {
           "file": "app/schemas/user.py",
-          "line_start": 17,
-          "line_end": 30
+          "start_line": 17,
+          "end_line": 30
         }
       },
 
@@ -253,8 +215,8 @@
         },
         "x-trace": {
           "file": "app/schemas/user.py",
-          "line_start": 5,
-          "line_end": 15
+          "start_line": 5,
+          "end_line": 15
         }
       },
 
@@ -273,8 +235,8 @@
         },
         "x-trace": {
           "file": "app/schemas/order.py",
-          "line_start": 5,
-          "line_end": 25
+          "start_line": 5,
+          "end_line": 25
         }
       },
 
@@ -289,8 +251,8 @@
         },
         "x-trace": {
           "file": "app/schemas/error.py",
-          "line_start": 1,
-          "line_end": 20
+          "start_line": 1,
+          "end_line": 20
         }
       },
 
@@ -311,8 +273,8 @@
         },
         "x-trace": {
           "file": "app/schemas/error.py",
-          "line_start": 22,
-          "line_end": 45
+          "start_line": 22,
+          "end_line": 45
         }
       }
     },
@@ -324,8 +286,8 @@
         "description": "JWT authentication.",
         "x-trace": {
           "file": "app/core/security.py",
-          "line_start": 1,
-          "line_end": 8
+          "start_line": 1,
+          "end_line": 8
         }
       }
     }
