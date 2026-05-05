@@ -4,15 +4,9 @@ This project provides a UI for exploring OpenAPI traces and includes API endpoin
 
 ## Project Structure
 
-- `app/` - Main application code
-  - `api/` - API endpoints (orders, users)
-  - `core/` - Core utilities (e.g., security)
-  - `schemas/` - Pydantic schemas for data validation
-  - `services/` - Business logic/services
 - `openapi_trace_ui/` - UI for OpenAPI trace visualization
   - `templates/` - Jinja2 HTML templates
   - `utils/` - Helper functions
-- `example/openapi.json` - Example OpenAPI specification
 - `pyproject.toml` - Project dependencies and configuration
 
 ## Setup Instructions
@@ -36,14 +30,29 @@ To activate the Poetry-managed virtual environment, run:
 
 ```bash
 poetry shell
+
 ```
 
-### 3. Run the Application
+### 3. Configure Environment Variables
+
+```bash
+cp .env.example .env
+```
+
+Then edit .env to set the correct values for your environment
+
+### 4. Run the Application
 
 Run the application using Poetry:
 
 ```bash
 poetry run uvicorn openapi_trace_ui.server:app --reload
+```
+
+or
+
+```bash
+make run-ui
 ```
 
 - The app will be available at `http://127.0.0.1:8000/` by default.
