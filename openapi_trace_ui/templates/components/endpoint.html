@@ -19,7 +19,13 @@
 
   <div class="p-4">
     {% if ep.data.description %}
-      <p class="mt-0 text-base text-gray-800 font-medium leading-relaxed">{{ ep.data.description }}</p>
+      <details class="mt-0 group" style="background: none; border: none; padding: 0;">
+        <summary class="flex items-center cursor-pointer text-gray-700 text-base select-none">
+          <svg class="w-4 h-4 text-gray-500 mr-1 transform group-open:rotate-90 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          Description
+        </summary>
+        <div class="mt-1 text-gray-700 text-base leading-relaxed">{{ ep.data.description }}</div>
+      </details>
     {% endif %}
 
     {% set params = get_parameters(ep) %}
@@ -37,7 +43,13 @@
                 {% if p.required %}<div class="text-xs" style="background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:999px;font-weight:700">required</div>{% endif %}
               </div>
               {% if p.description %}
-                <div class="mt-1 text-sm text-gray-700 font-medium">{{ p.description }}</div>
+                <details class="mt-1 group" style="background: none; border: none; padding: 0;">
+                  <summary class="flex items-center cursor-pointer text-gray-700 text-sm select-none">
+                    <svg class="w-4 h-4 text-gray-500 mr-1 transform group-open:rotate-90 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    Description
+                  </summary>
+                  <div class="mt-1 text-gray-700 text-sm leading-relaxed">{{ p.description }}</div>
+                </details>
               {% endif %}
             </div>
             <div class="ml-4 flex items-center space-x-2">

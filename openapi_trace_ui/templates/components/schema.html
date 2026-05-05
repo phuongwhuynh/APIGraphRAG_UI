@@ -16,10 +16,10 @@
       {% set resolved = target_schema %}
     {% endif %}
 
-    <details class="group" open>
+    <details class="group/main" open>
       <summary class="flex items-center justify-between cursor-pointer list-none">
         <div class="flex items-center space-x-3">
-          <svg class="w-4 h-4 text-gray-500 transform group-open:rotate-90 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          <svg class="w-4 h-4 text-gray-500 transform group-open/main:rotate-90 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
           
           {# --- FIX: DYNAMIC TITLE --- #}
           <div class="text-sm text-gray-800 font-medium">
@@ -47,6 +47,18 @@
           {% endif %}
         </div>
       </summary>
+
+        {# --- Render schema description if present --- #}
+
+        {% if resolved.get('description') %}
+          <details class="mt-4 ml-2 group/desc" style="background: none; border: none; padding: 0;">
+            <summary class="flex items-center cursor-pointer text-gray-700 text-sm select-none">
+              <svg class="w-4 h-4 text-gray-500 mr-1 transform group-open/desc:rotate-90 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              Description
+            </summary>
+            <div class="mt-1 text-gray-700 text-sm leading-relaxed">{{ resolved.get('description') }}</div>
+          </details>
+        {% endif %}
 
       <div class="mt-2">
         {# --- FIX: EXTRACT PROPERTIES DIRECTLY (NO RECURSIVE INCLUDE) --- #}

@@ -5,13 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OpenAPI Trace UI</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js/styles/github.css">
-    <script src="https://cdn.jsdelivr.net/npm/highlight.js/highlight.min.js"></script>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-coy.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <script>
+      if (window.Prism) {
+          Prism.languages.insertBefore('python', 'punctuation', {
+              // Any word starting with a capital letter (e.g., DbSession, CurrentUser)
+              'class-name': /\b[A-Z][a-zA-Z0-9_]*\b/, 
+              // Any standard word not caught by keywords (e.g., db_session, user_settings)
+              'variable': /\b[a-z_][a-zA-Z0-9_]*\b/   
+          });
+      }
+    </script>
+
     <style>
       /* overall helpers to emulate a Swagger-like crisp style */
       body { background: #f8fafc; }
       .swagger-header { background: linear-gradient(90deg,#2563eb,#7c3aed); color: white; border-radius: 8px; }
       .card { background: white; border: 1px solid #e6edf3; box-shadow: 0 6px 12px rgba(16,24,40,0.04); }
+
+      /* VS Code Light Theme Colors - FORCED OVERRIDES */
+      .trace-panel code { color: #000000 !important; }
+      .token.keyword { color: #0000ff !important; font-weight: normal !important; }
+      .token.string { color: #a31515 !important; }
+      .token.function { color: #795e26 !important; }
+      .token.class-name { color: #267f99 !important; } /* Teal type hints */
+      .token.variable { color: #001080 !important; } /* Dark blue variables */
+      .token.comment { color: #008000 !important; font-style: normal !important; }
+      .token.operator, .token.punctuation { color: #000000 !important; background: transparent !important; }
+      .token.builtin { color: #0000ff !important; }
+      .token.boolean, .token.number { color: #098658 !important; }
 
       /* code window */
       .trace-panel pre { 
@@ -20,42 +46,45 @@
           overflow-x: auto; 
           margin: 0;
       }
-      .line-number { color: #94a3b8; padding-right: 1rem; }
-      .line.highlight { background-color: rgba(99,102,241,0.08); border-left: 3px solid rgba(99,102,241,0.9); }
-
-      /* parameter and schema emphasis */
+      .line-number { color: #94a3b8; padding-right: 1rem; user-select: none; }
+      
+      /* Parameter and schema emphasis */
       .param-name { font-weight: 600; color: #0f172a; }
       .param-in { font-size: 11px; color:#3730a3; background:#eef2ff; padding:2px 8px; border-radius:999px; font-weight:600; }
       .type-pill { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace; background:#eef2ff; color:#3730a3; padding:2px 8px; border-radius:6px; font-size:12px; }
-      .schema-card { background: #ffffff; border: 1px solid #e6edf3; border-radius: 8px; }
-      .schema-field { display:flex; justify-content:space-between; gap: 12px; padding:6px 0; border-bottom: 1px dashed #f1f5f9; }
-      .schema-field-name { font-weight:700; color:#0f172a; }
-      .schema-field-desc { color:#475569; font-size:13px; }
-
-      /* trace link */
-      .trace-link { color:#2563eb; font-weight:600; }
-      .trace-file { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace; color:#0f172a; }
-
+      
       /* trace panel specifics */
       .trace-panel { width: 480px; }
-      .trace-panel .hljs {
+      .trace-panel code {
           background: transparent !important;
           padding: 0 !important;
-          display: inline-block; /* Expands to fit the longest line of code */
+          display: inline-block;
           width: max-content;
-          min-width: 100%;       /* Ensures it fills the panel even if code is short */
+          min-width: 100%;
+          box-shadow: none !important; /* Override Prism Coy shadow */
       }
+      
       .trace-panel .line-number { background:#f8fafc; color:#64748b; padding:0 10px; border-right:1px solid #eef2f7; }
       .trace-panel .line { 
-          display: block;        /* Takes up the full width of the parent */
-          width: 100%;           /* Ensures the line spans the entire width of the panel */
+          display: block;
+          width: 100%;
           box-sizing: border-box;
-          padding: 2px 16px;     /* Added a bit more horizontal padding for aesthetics */
+          padding: 2px 16px;
       }
       .trace-panel .line:hover { background:#f1f5f9; }
-      .trace-panel .highlight { background: linear-gradient(90deg, rgba(99,102,241,0.06), rgba(99,102,241,0.02)); border-left: 4px solid rgba(99,102,241,0.9); }
+      
+      /* Highlighted line styling */
+      .trace-panel .highlight { 
+          background: linear-gradient(90deg, rgba(99,102,241,0.06), rgba(99,102,241,0.02)); 
+          border-left: 4px solid rgba(99,102,241,0.9); 
+          padding-left: 12px; 
+      }
+      
       #trace-copy { background: transparent; border: none; padding:6px 8px; border-radius:6px; }
       #trace-copy.copied { background:#ecfdf5; color:#065f46; }
+      
+      /* Prism specific overrides for better contrast */
+      .token.entity, .token.url, .language-css .token.string, .style .token.string { background: transparent !important; }
     </style>
   </head>
   <body class="bg-gray-50 text-gray-900">
@@ -74,9 +103,9 @@
       </section>
     {% endfor %}
     </div>
+
   </div>
 
-  <!-- Trace preview panel (appears near hovered item) -->
   <div id="trace-panel" class="trace-panel bg-white shadow-lg rounded-lg overflow-hidden hidden z-50" style="position:absolute; display:none; width:420px; max-height:70vh; border:1px solid #e6edf3;">
     <div class="px-4 py-2 border-b bg-white flex items-center justify-between">
       <div class="flex items-center space-x-3">
@@ -115,64 +144,71 @@
       return data.content;
     }
 
-    // store last loaded trace text for copy
     let lastTraceText = '';
-function renderTrace(content, opts) {
-  // Ensure content is a string so .split() and .replace() don't crash
-  if (typeof content !== 'string') {
-    content = String(content || ''); 
-  }
 
-  const start = opts.start_line || opts.line || 1;
-  const end = opts.end_line || opts.line || start;
+    function renderTrace(content, opts) {
+      if (typeof content !== 'string') {
+        content = String(content || ''); 
+      }
 
-  const wrapper = document.createElement('div');
-  wrapper.className = 'text-sm text-gray-800';
+      const start = opts.start_line || opts.line || 1;
+      const end = opts.end_line || opts.line || start;
 
-  const pre = document.createElement('pre');
-  pre.style.margin = '0';
-  pre.style.padding = '0';
-  pre.style.background = 'none';
-  pre.style.position = 'relative';
+      const wrapper = document.createElement('div');
+      wrapper.className = 'text-sm text-gray-800';
 
-  const code = document.createElement('code');
-  code.className = 'hljs language-python';
+      const pre = document.createElement('pre');
+      pre.style.margin = '0';
+      pre.style.padding = '0';
+      pre.style.background = 'none';
+      pre.style.position = 'relative';
 
-  // Safely attempt highlighting
-  let highlightedHTML = '';
-  if (window.hljs) {
-    try {
-      // Try modern Highlight.js API (v10.7+)
-      highlightedHTML = window.hljs.highlight(content, { language: 'python' }).value;
-    } catch (e1) {
-      try {
-        // Fallback to Legacy API (v10 and older)
-        highlightedHTML = window.hljs.highlight('python', content).value;
-      } catch (e2) {
-        console.warn("Highlight.js failed, falling back to raw text:", e2);
+      const code = document.createElement('code');
+      code.className = 'language-python';
+
+      // 1. Highlight using Prism.js
+      let highlightedHTML = '';
+      if (window.Prism) {
+        highlightedHTML = Prism.highlight(content, Prism.languages.python, 'python');
+      } else {
         highlightedHTML = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       }
+
+      // 2. Safely split into lines while balancing tags
+      const lines = highlightedHTML.split('\n');
+      let codeHtml = '';
+      let openTags = [];
+
+      for (let i = 0; i < lines.length; i++) {
+        const num = i + 1;
+        let lineClass = 'line';
+        if (num >= start && num <= end) lineClass += ' highlight';
+
+        let lineContent = lines[i];
+        
+        let prepend = openTags.join('');
+        
+        const tagRegex = /<\/?span[^>]*>/g;
+        let match;
+        while ((match = tagRegex.exec(lineContent)) !== null) {
+          if (match[0].startsWith('</')) {
+            openTags.pop();
+          } else {
+            openTags.push(match[0]);
+          }
+        }
+
+        let append = openTags.slice().reverse().map(() => '</span>').join('');
+        codeHtml += `<span class="${lineClass}"><span class="line-number">${num}</span> ${prepend}${lineContent}${append}</span>`;
+      }
+
+      code.innerHTML = codeHtml;
+      pre.appendChild(code);
+      wrapper.appendChild(pre);
+
+      return wrapper;
     }
-  } else {
-    highlightedHTML = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
 
-  const lines = highlightedHTML.split('\n');
-  let codeHtml = '';
-  
-  for (let i = 0; i < lines.length; i++) {
-    const num = i + 1;
-    let lineClass = 'line';
-    if (num >= start && num <= end) lineClass += ' highlight';
-    codeHtml += `<span class="${lineClass}"><span class="line-number">${num}</span> ${lines[i]}</span>`;
-  }
-
-  code.innerHTML = codeHtml;
-  pre.appendChild(code);
-  wrapper.appendChild(pre);
-
-  return wrapper;
-}
     let hoverTimeout = null;
 
     function findParamTrace(node){
@@ -188,74 +224,79 @@ function renderTrace(content, opts) {
       if(!el) return;
       const file = el.dataset.file;
       if(!file) return;
-      // read line attrs
+      
       const line = el.dataset.line ? parseInt(el.dataset.line,10) : null;
       const lineStart = el.dataset.lineStart ? parseInt(el.dataset.lineStart,10) : null;
       const lineEnd = el.dataset.lineEnd ? parseInt(el.dataset.lineEnd,10) : null;
+      
       try{
         const content = await loadTrace(file);
         lastTraceText = content;
         panelTitle.textContent = file + (lineStart? ` (${lineStart}-${lineEnd})` : (line? ` (line ${line})` : ''));
         panelContent.innerHTML = '';
-        // update range display
+        
         const rangeEl = document.getElementById('trace-range');
         if(rangeEl){ rangeEl.textContent = lineStart? `${lineStart}-${lineEnd}` : (line? `line ${line}` : ''); }
+        
         const node = renderTrace(content, {line: line, start_line: lineStart, end_line: lineEnd});
         panelContent.appendChild(node);
         showPanel();
 
-        // position panel next to element
         const rect = el.getBoundingClientRect();
-        // ensure panel is in document flow to compute size
         document.body.appendChild(panel);
-        // small timeout to allow rendering
+        
         requestAnimationFrame(()=>{
           const panelRect = panel.getBoundingClientRect();
           const margin = 8;
           let left = window.scrollX + rect.right + margin;
           let top = window.scrollY + rect.top;
-            // if overflow right, position to left of element
-            if(left + panelRect.width > window.scrollX + window.innerWidth){
-              left = window.scrollX + rect.left - panelRect.width - margin;
-            }
-          // clamp top to viewport
+          
+          if(left + panelRect.width > window.scrollX + window.innerWidth){
+            left = window.scrollX + rect.left - panelRect.width - margin;
+          }
           if(top + panelRect.height > window.scrollY + window.innerHeight){
             top = window.scrollY + window.innerHeight - panelRect.height - margin;
           }
           if(top < window.scrollY + margin) top = window.scrollY + margin;
-            // compute desired width based on rendered content so panel expands if possible
-            panel.style.width = 'auto';
-            const contentInner = panelContent.firstElementChild;
-            if(contentInner){
-              // measure inner width
-              const codeElement = contentInner.querySelector('code');
-              const trueScrollWidth = codeElement ? codeElement.scrollWidth : contentInner.scrollWidth;
-
-              
-              const contentWidth = contentInner.scrollWidth + 32; // add padding
-              const maxAllowed = Math.min(window.innerWidth - margin*2, 1200);
-              const targetWidth = Math.min(contentWidth, maxAllowed);
-              panel.style.width = targetWidth + 'px';
-              // re-read panel rect after width change
-              const newRect = panel.getBoundingClientRect();
-              // reposition if we now overflow
-              if(left + newRect.width > window.scrollX + window.innerWidth){
-                left = window.scrollX + rect.left - newRect.width - margin;
-              }
-              if(left < window.scrollX + margin) left = window.scrollX + margin;
-              panel.style.left = left + 'px';
-              panel.style.top = top + 'px';
-              // horizontal scroll if content wider than panel
-              if(contentWidth > targetWidth){
-                panelContent.style.overflowX = 'auto';
-              } else {
-                panelContent.style.overflowX = 'hidden';
-              }
-            } else {
-              panel.style.left = left + 'px';
-              panel.style.top = top + 'px';
+            
+          panel.style.width = 'auto';
+          const contentInner = panelContent.firstElementChild;
+          if(contentInner){
+            const codeElement = contentInner.querySelector('code');
+            
+            const contentWidth = contentInner.scrollWidth + 32; 
+            const maxAllowed = Math.min(window.innerWidth - margin*2, 1200);
+            const targetWidth = Math.min(contentWidth, maxAllowed);
+            panel.style.width = targetWidth + 'px';
+            
+            const newRect = panel.getBoundingClientRect();
+            if(left + newRect.width > window.scrollX + window.innerWidth){
+              left = window.scrollX + rect.left - newRect.width - margin;
             }
-            centerHighlight(panelContent);
+            if(left < window.scrollX + margin) left = window.scrollX + margin;
+            panel.style.left = left + 'px';
+            panel.style.top = top + 'px';
+            
+            if(contentWidth > targetWidth){
+              panelContent.style.overflowX = 'auto';
+            } else {
+              panelContent.style.overflowX = 'hidden';
+            }
+          } else {
+            panel.style.left = left + 'px';
+            panel.style.top = top + 'px';
+          }
+          
+          (function centerHighlight(){
+            const code = panelContent.querySelector('code');
+            if (!code) return;
+            const highlights = code.querySelectorAll('.highlight');
+            if (highlights.length === 0) return;
+            let target = highlights[Math.floor(highlights.length/2)];
+            const container = panelContent;
+            const scrollTop = target.offsetTop - (container.clientHeight/2) + (target.clientHeight/2);
+            container.scrollTop = scrollTop;
+          })();
         });
       }catch(err){
         panelContent.textContent = 'Unable to load file';
@@ -266,14 +307,13 @@ function renderTrace(content, opts) {
     document.addEventListener('pointerleave', (e)=>{
       const el = findParamTrace(e.target);
       if(!el) return;
-      // hide after short delay to allow moving into panel
       clearTimeout(hoverTimeout);
       hoverTimeout = setTimeout(()=>{ if(!panel.matches(':hover')) hidePanel(); }, 250);
     }, true);
 
-    // keep panel visible if user moves pointer into it
     panel.addEventListener('pointerleave', ()=>{ if(!hoverTimeout) hoverTimeout = setTimeout(hidePanel, 300); });
     panel.addEventListener('pointerenter', ()=>{ clearTimeout(hoverTimeout); hoverTimeout = null; });
+    
     // copy button
     const copyBtn = document.getElementById('trace-copy');
     if(copyBtn){
@@ -291,6 +331,5 @@ function renderTrace(content, opts) {
     }
   })();
   </script>
-
   </body>
-  </html>
+</html>
